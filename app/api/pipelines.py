@@ -30,227 +30,226 @@ router = APIRouter(prefix="/api/pipelines", tags=["pipelines"])
 PIPELINE_TEMPLATES: list[dict] = [
     {
         "id": "task-development",
-        "title": "Разработка задачи",
-        "description": "Полный цикл: подготовка → анализ PM → дизайн → разработка → ревью → тестирование → деплой",
+        "title": "Task Development",
+        "description": "Full cycle: preparation → PM analysis → design → development → review → testing → deploy",
         "human_loop": True,
-        "orchestrator_prompt": """Ты — Team Lead AI-команды. Ты управляешь пайплайном разработки задачи.
+        "orchestrator_prompt": """You are the Team Lead of an AI team. You manage the task development pipeline.
 
-## Твоя роль
-Ты — единственный оркестратор. Общаешься с пользователем, делегируешь задачи агентам через MCP-инструменты, передаёшь контекст между шагами.
+## Your Role
+You are the sole orchestrator. You communicate with the user, delegate tasks to agents via MCP tools, and pass context between steps.
 
-## Пайплайн разработки задачи
+## Task Development Pipeline
 
-### Шаг 1: Подготовка
-Спроси у пользователя номер задачи (LX-XXX) или описание. Используй jira:get_issue чтобы получить данные задачи. Определи проект по labels. Получи архитектурный контекст через docs:get_context.
+### Step 1: Preparation
+Ask the user for the task number (LX-XXX) or description. Use jira:get_issue to get task data. Determine the project by labels. Get architectural context via docs:get_context.
 
-### Шаг 2: Анализ (для сложных задач)
-Если задача сложная (> 5 SP или эпик) — проанализируй её как PM: декомпозируй на подзадачи, определи agent pipeline (какие агенты нужны), подготовь таск-лист. Покажи пользователю и дождись подтверждения.
+### Step 2: Analysis (for complex tasks)
+If the task is complex (> 5 SP or epic) — analyze it as a PM: decompose into subtasks, determine the agent pipeline (which agents are needed), prepare a task list. Show the user and wait for confirmation.
 
-### Шаг 3: Дизайн (для frontend/mobile задач)
-Если задача frontend или mobile — подготовь UI-рекомендации: проверь Figma макеты через figma:get_file, сформулируй требования к UI. Покажи пользователю.
+### Step 3: Design (for frontend/mobile tasks)
+If the task is frontend or mobile — prepare UI recommendations: check Figma mockups via figma:get_file, formulate UI requirements. Show the user.
 
-### Шаг 4: Разработка
-Сформулируй задачу для разработчика с полным контекстом: описание, таск-лист от PM, UI-рекомендации от дизайнера, архитектурный контекст. Покажи план реализации пользователю.
+### Step 4: Development
+Formulate the task for the developer with full context: description, task list from PM, UI recommendations from designer, architectural context. Show the implementation plan to the user.
 
-### Шаг 5: Ревью
-Покажи результат пользователю. Пользователь может попросить показать diff, исправить что-то, или одобрить.
+### Step 5: Review
+Show the result to the user. The user may ask to see the diff, fix something, or approve.
 
-### Шаг 6: Тестирование
-После одобрения — проведи тестирование: lint, unit-тесты. Для новых задач (не Poppycock) — сгенерируй чеклист для QA.
+### Step 6: Testing
+After approval — run testing: lint, unit tests. For new tasks (not Poppycock) — generate a QA checklist.
 
-### Шаг 7: Завершение
-Переведи задачу в Jira: Developing → Developed. Создай MR если нужно.
+### Step 7: Completion
+Transition the task in Jira: Developing → Developed. Create an MR if needed.
 
-## Правила
-- Human-in-the-loop: показывай результат каждого шага, жди подтверждения
-- Минимальные изменения — не рефактори то, что не просят
-- Русский для общения, английский для кода/коммитов
-- Приоритет: Poppycock → AI-ревью → Новые задачи
-- Не мержь MR — только создавай. Мердж делает человек.""",
+## Rules
+- Human-in-the-loop: show the result of each step, wait for confirmation
+- Minimal changes — do not refactor what is not requested
+- English for communication, English for code/commits
+- Priority: Poppycock → AI review → New tasks
+- Do not merge MRs — only create them. Merging is done by a human.""",
         "agents": ["pm-agent", "designer-agent", "frontend-dev", "backend-dev", "mobile-dev", "qa-agent", "devops-agent"],
         "steps_description": [
-            {"agent": "automation", "label": "Подготовка задачи", "description": "Jira, ветка, контекст проекта"},
-            {"agent": "pm-agent", "label": "Анализ PM", "description": "Декомпозиция, таск-лист, pipeline агентов"},
-            {"agent": "designer-agent", "label": "UI-дизайн", "description": "Figma, дизайн-система, UI-рекомендации"},
-            {"agent": "dev", "label": "Разработка", "description": "Реализация задачи (frontend/backend/mobile)"},
-            {"agent": "user", "label": "Ревью", "description": "Проверка и одобрение результата"},
-            {"agent": "qa-agent", "label": "Тестирование", "description": "Lint, тесты, чеклист для QA"},
-            {"agent": "automation", "label": "Завершение", "description": "Коммит, push, MR, статус Jira"},
+            {"agent": "automation", "label": "Task Preparation", "description": "Jira, branch, project context"},
+            {"agent": "pm-agent", "label": "PM Analysis", "description": "Decomposition, task list, agent pipeline"},
+            {"agent": "designer-agent", "label": "UI Design", "description": "Figma, design system, UI recommendations"},
+            {"agent": "dev", "label": "Development", "description": "Task implementation (frontend/backend/mobile)"},
+            {"agent": "user", "label": "Review", "description": "Verification and approval of the result"},
+            {"agent": "qa-agent", "label": "Testing", "description": "Lint, tests, QA checklist"},
+            {"agent": "automation", "label": "Completion", "description": "Commit, push, MR, Jira status"},
         ],
     },
     {
         "id": "mr-review",
-        "title": "AI-ревью MR",
-        "description": "Code review → тестирование → чеклист QA → перевод статуса",
+        "title": "AI MR Review",
+        "description": "Code review → testing → QA checklist → status transition",
         "human_loop": False,
         "orchestrator_prompt": None,
         "agents": ["frontend-dev", "backend-dev", "qa-agent"],
         "steps": [
-            {"agent_slug": "backend-dev", "input_template": "РЕЖИМ РЕВЬЮ.\nЗадача: {input}\nПроанализируй MR: качество кода, безопасность, паттерны проекта. Если есть замечания — опиши конкретно."},
-            {"agent_slug": "qa-agent", "input_template": "На основе code review сгенерируй чеклист для QA-тестирования:\n{prev_output}"},
+            {"agent_slug": "backend-dev", "input_template": "REVIEW MODE.\nTask: {input}\nAnalyze the MR: code quality, security, project patterns. If there are issues — describe them specifically."},
+            {"agent_slug": "qa-agent", "input_template": "Based on the code review, generate a QA testing checklist:\n{prev_output}"},
         ],
         "steps_description": [
-            {"agent": "dev", "label": "Code Review", "description": "Анализ качества кода, безопасность, паттерны"},
-            {"agent": "qa-agent", "label": "QA чеклист", "description": "Генерация чеклиста для тестирования"},
+            {"agent": "dev", "label": "Code Review", "description": "Code quality analysis, security, patterns"},
+            {"agent": "qa-agent", "label": "QA Checklist", "description": "Test checklist generation"},
         ],
     },
     {
         "id": "pm-task-creation",
-        "title": "PM: Создание задачи",
-        "description": "Анализ контекста → формулировка → создание в Jira",
+        "title": "PM: Task Creation",
+        "description": "Context analysis → formulation → creation in Jira",
         "human_loop": True,
-        "orchestrator_prompt": """Ты — AI Product Manager. Помогаешь PM создавать задачи в Jira.
+        "orchestrator_prompt": """You are an AI Product Manager. You help PMs create tasks in Jira.
 
-## Процесс
+## Process
 
-### Шаг 1: Понять задачу
-Спроси пользователя что нужно сделать. Уточни проект, тип задачи, приоритет.
+### Step 1: Understand the task
+Ask the user what needs to be done. Clarify the project, task type, and priority.
 
-### Шаг 2: Архитектурный контекст
-Определи проект по labels. Получи архитектурный контекст через docs:get_context — модули, роуты, API-зависимости.
+### Step 2: Architectural context
+Determine the project by labels. Get architectural context via docs:get_context — modules, routes, API dependencies.
 
-### Шаг 3: Формулировка
-На основе описания и контекста сформулируй:
-- Summary (краткий заголовок)
+### Step 3: Formulation
+Based on the description and context, formulate:
+- Summary (short title)
 - Type: Issue/Bug/Story/Epic/Task
 - Labels (project label + type label)
-- Story Points (Fibonacci: 1, 2, 3, 5, 8, 13; если > 8 — рекомендуй декомпозицию)
-- Description: Контекст, Требования, Критерии приёмки, Edge Cases
+- Story Points (Fibonacci: 1, 2, 3, 5, 8, 13; if > 8 — recommend decomposition)
+- Description: Context, Requirements, Acceptance Criteria, Edge Cases
 
-Покажи preview пользователю. Дождись подтверждения.
+Show a preview to the user. Wait for confirmation.
 
-### Шаг 4: Создание
-После подтверждения — создай задачу через jira:create_issue.
+### Step 4: Creation
+After confirmation — create the task via jira:create_issue.
 
-## Правила
-- Всегда показывай preview перед созданием
-- Описания на русском
-- ADF формат для Jira
-- Story Points: если задача > 8 SP — предложи декомпозицию""",
+## Rules
+- Always show a preview before creation
+- ADF format for Jira
+- Story Points: if task > 8 SP — suggest decomposition""",
         "agents": ["pm-agent"],
         "steps_description": [
-            {"agent": "user", "label": "Описание задачи", "description": "Что нужно сделать"},
-            {"agent": "pm-agent", "label": "Формулировка", "description": "Summary, тип, SP, описание"},
-            {"agent": "user", "label": "Подтверждение", "description": "Preview перед созданием"},
-            {"agent": "automation", "label": "Создание в Jira", "description": "Запись задачи"},
+            {"agent": "user", "label": "Task Description", "description": "What needs to be done"},
+            {"agent": "pm-agent", "label": "Formulation", "description": "Summary, type, SP, description"},
+            {"agent": "user", "label": "Confirmation", "description": "Preview before creation"},
+            {"agent": "automation", "label": "Create in Jira", "description": "Record the task"},
         ],
     },
     {
         "id": "pm-epic-decomposition",
-        "title": "PM: Декомпозиция эпика",
-        "description": "Получение эпика → анализ → разбивка на подзадачи → создание в Jira",
+        "title": "PM: Epic Decomposition",
+        "description": "Get epic → analysis → split into subtasks → create in Jira",
         "human_loop": True,
-        "orchestrator_prompt": """Ты — AI Product Manager. Помогаешь декомпозировать эпики.
+        "orchestrator_prompt": """You are an AI Product Manager. You help decompose epics.
 
-## Процесс
+## Process
 
-### Шаг 1: Получить эпик
-Спроси номер эпика (LX-XXX). Получи данные через jira:get_issue. Определи проект и получи архитектурный контекст через docs:get_context.
+### Step 1: Get the epic
+Ask for the epic number (LX-XXX). Get data via jira:get_issue. Determine the project and get architectural context via docs:get_context.
 
-### Шаг 2: Декомпозиция
-Разбей эпик на подзадачи:
-- Каждая подзадача: summary, тип, labels, SP, описание
-- Зависимости между подзадачами
-- Рекомендации по порядку выполнения
-- Agent pipeline для каждой (какие агенты нужны)
+### Step 2: Decomposition
+Break the epic into subtasks:
+- Each subtask: summary, type, labels, SP, description
+- Dependencies between subtasks
+- Recommendations for execution order
+- Agent pipeline for each (which agents are needed)
 
-Покажи список пользователю. Дождись подтверждения.
+Show the list to the user. Wait for confirmation.
 
-### Шаг 3: Создание
-Создай подзадачи в Jira через jira:create_issue.
+### Step 3: Creation
+Create subtasks in Jira via jira:create_issue.
 
-## Правила
+## Rules
 - Fibonacci SP: 1, 2, 3, 5, 8, 13
-- Если подзадача > 8 SP — разбей ещё
-- Показывай preview всех подзадач перед созданием""",
+- If a subtask > 8 SP — break it down further
+- Show a preview of all subtasks before creation""",
         "agents": ["pm-agent"],
         "steps_description": [
-            {"agent": "automation", "label": "Получение эпика", "description": "Данные из Jira + контекст"},
-            {"agent": "pm-agent", "label": "Декомпозиция", "description": "Подзадачи, SP, зависимости"},
-            {"agent": "user", "label": "Подтверждение", "description": "Ревью подзадач"},
-            {"agent": "automation", "label": "Создание в Jira", "description": "Запись подзадач"},
+            {"agent": "automation", "label": "Get Epic", "description": "Jira data + context"},
+            {"agent": "pm-agent", "label": "Decomposition", "description": "Subtasks, SP, dependencies"},
+            {"agent": "user", "label": "Confirmation", "description": "Subtask review"},
+            {"agent": "automation", "label": "Create in Jira", "description": "Record subtasks"},
         ],
     },
     {
         "id": "qa-checklist",
-        "title": "QA: Чеклист и тестирование",
-        "description": "Анализ задачи → чеклист → автотестирование → отчёт",
+        "title": "QA: Checklist & Testing",
+        "description": "Task analysis → checklist → automated testing → report",
         "human_loop": True,
-        "orchestrator_prompt": """Ты — AI QA Assistant. Помогаешь QA-инженерам с тестированием.
+        "orchestrator_prompt": """You are an AI QA Assistant. You help QA engineers with testing.
 
-## Процесс
+## Process
 
-### Шаг 1: Получить задачу
-Спроси номер задачи (LX-XXX). Получи данные через jira:get_issue. Определи проект по labels, получи архитектурный контекст через docs:get_context. Если есть ветка — получи diff изменений через gitlab:get_mr_diff.
+### Step 1: Get the task
+Ask for the task number (LX-XXX). Get data via jira:get_issue. Determine the project by labels, get architectural context via docs:get_context. If there is a branch — get the diff of changes via gitlab:get_mr_diff.
 
-### Шаг 2: Генерация чеклиста
-На основе задачи, контекста и diff сгенерируй **короткий smoke-чеклист** (5-10 пунктов максимум, для мелких задач 3-5):
-- Happy path ТОЛЬКО для изменённого функционала
-- Негативные / граничные случаи только для изменённой логики (если применимо)
-- **НЕ включай:** регрессию, тестирование незатронутого функционала, общие проверки (адаптивность, accessibility, SEO, производительность), проверки соседних модулей
+### Step 2: Checklist generation
+Based on the task, context, and diff, generate a **short smoke checklist** (5-10 items max, for small tasks 3-5):
+- Happy path ONLY for the changed functionality
+- Negative / edge cases only for changed logic (if applicable)
+- **DO NOT include:** regression, testing of unaffected functionality, general checks (responsiveness, accessibility, SEO, performance), checks of adjacent modules
 
-Покажи чеклист пользователю. Дождись подтверждения или правок.
+Show the checklist to the user. Wait for confirmation or edits.
 
-### Шаг 3: Публикация
-После подтверждения — добавь чеклист в Jira комментарий через jira:add_comment.
+### Step 3: Publication
+After confirmation — add the checklist as a Jira comment via jira:add_comment.
 
-### Шаг 4 (опционально): Автотестирование
-Если QA просит — можно проверить чеклист на staging автоматически.
+### Step 4 (optional): Automated testing
+If QA requests — the checklist can be verified on staging automatically.
 
-## Правила
-- Чеклист на русском, в формате Jira taskList
-- Всегда обогащай чеклист архитектурным контекстом
-- Показывай preview перед записью в Jira""",
+## Rules
+- Checklist in Jira taskList format
+- Always enrich the checklist with architectural context
+- Show a preview before writing to Jira""",
         "agents": ["qa-agent"],
         "steps_description": [
-            {"agent": "automation", "label": "Получение задачи", "description": "Jira + контекст + diff"},
-            {"agent": "qa-agent", "label": "Генерация чеклиста", "description": "Smoke-чеклист по затронутому функционалу (5-10 пунктов)"},
-            {"agent": "user", "label": "Подтверждение", "description": "Ревью чеклиста"},
-            {"agent": "automation", "label": "Публикация", "description": "Комментарий в Jira"},
+            {"agent": "automation", "label": "Get Task", "description": "Jira + context + diff"},
+            {"agent": "qa-agent", "label": "Checklist Generation", "description": "Smoke checklist for affected functionality (5-10 items)"},
+            {"agent": "user", "label": "Confirmation", "description": "Checklist review"},
+            {"agent": "automation", "label": "Publication", "description": "Jira comment"},
         ],
     },
     {
         "id": "design-from-figma",
-        "title": "Дизайн: Figma → Pencil",
-        "description": "Чтение Figma макета → извлечение токенов → создание UI в Pencil",
+        "title": "Design: Figma → Pencil",
+        "description": "Read Figma mockup → extract tokens → create UI in Pencil",
         "human_loop": True,
-        "orchestrator_prompt": """Ты — AI Designer Team Lead. Управляешь дизайн-пайплайном.
+        "orchestrator_prompt": """You are an AI Designer Team Lead. You manage the design pipeline.
 
-## Агенты
-- figma-reader: читает Figma макеты, извлекает токены
-- ui-designer: создаёт UI в Pencil.dev
-- design-system: управляет дизайн-системой
+## Agents
+- figma-reader: reads Figma mockups, extracts tokens
+- ui-designer: creates UI in Pencil.dev
+- design-system: manages the design system
 
-## Процесс
+## Process
 
-### Шаг 1: Получить Figma макет
-Спроси URL Figma файла. Прочитай структуру через figma:get_file, получи ноды через figma:get_file_nodes. Извлеки: цвета, типографику, отступы, border-radius, компоненты.
+### Step 1: Get Figma mockup
+Ask for the Figma file URL. Read the structure via figma:get_file, get nodes via figma:get_file_nodes. Extract: colors, typography, spacing, border-radius, components.
 
-### Шаг 2: UI-рекомендации
-На основе извлечённых данных сформулируй рекомендации по реализации. Сравни с текущей дизайн-системой.
+### Step 2: UI recommendations
+Based on extracted data, formulate implementation recommendations. Compare with the current design system.
 
-### Шаг 3: Создание UI (если нужно)
-Если пользователь хочет — создай UI в Pencil на основе макета. Покажи скриншот результата.
+### Step 3: Create UI (if needed)
+If the user wants — create UI in Pencil based on the mockup. Show a screenshot of the result.
 
-### Шаг 4: Обновление дизайн-системы (если нужно)
-Если найдены новые токены — предложи обновить дизайн-систему.
+### Step 4: Update design system (if needed)
+If new tokens are found — suggest updating the design system.
 
-## Правила
-- Показывай результат каждого этапа
-- Перед финализацией — спроси подтверждение
-- Accessibility first: контрасты, размеры, фокус""",
+## Rules
+- Show the result of each stage
+- Before finalizing — ask for confirmation
+- Accessibility first: contrast, sizes, focus""",
         "agents": ["designer-agent"],
         "steps_description": [
-            {"agent": "designer-agent", "label": "Чтение Figma", "description": "Структура, токены, компоненты"},
-            {"agent": "designer-agent", "label": "UI-рекомендации", "description": "Анализ и рекомендации"},
-            {"agent": "designer-agent", "label": "Создание UI", "description": "Реализация в Pencil"},
-            {"agent": "designer-agent", "label": "Дизайн-система", "description": "Обновление токенов"},
+            {"agent": "designer-agent", "label": "Read Figma", "description": "Structure, tokens, components"},
+            {"agent": "designer-agent", "label": "UI Recommendations", "description": "Analysis and recommendations"},
+            {"agent": "designer-agent", "label": "Create UI", "description": "Implementation in Pencil"},
+            {"agent": "designer-agent", "label": "Design System", "description": "Token updates"},
         ],
     },
     {
         "id": "data-analysis",
-        "title": "Data: Ad-hoc анализ",
-        "description": "SQL-запрос → анализ данных → отчёт",
+        "title": "Data: Ad-hoc Analysis",
+        "description": "SQL query → data analysis → report",
         "human_loop": False,
         "orchestrator_prompt": None,
         "agents": ["data-agent"],
@@ -258,23 +257,23 @@ PIPELINE_TEMPLATES: list[dict] = [
             {"agent_slug": "data-agent", "input_template": "{input}"},
         ],
         "steps_description": [
-            {"agent": "data-agent", "label": "SQL-анализ", "description": "Запрос, анализ, отчёт"},
+            {"agent": "data-agent", "label": "SQL Analysis", "description": "Query, analysis, report"},
         ],
     },
     {
         "id": "sprint-report",
-        "title": "PM: Спринт-отчёт",
-        "description": "Сбор данных из Jira → анализ метрик → отчёт",
+        "title": "PM: Sprint Report",
+        "description": "Collect data from Jira → analyze metrics → report",
         "human_loop": False,
         "orchestrator_prompt": None,
         "agents": ["pm-agent", "data-agent"],
         "steps": [
-            {"agent_slug": "pm-agent", "input_template": "Собери данные по текущему спринту: открытые задачи, выполненные, в работе, Poppycock. {input}"},
-            {"agent_slug": "data-agent", "input_template": "Проанализируй метрики спринта и подготовь отчёт:\n{prev_output}"},
+            {"agent_slug": "pm-agent", "input_template": "Collect data for the current sprint: open tasks, completed, in progress, Poppycock. {input}"},
+            {"agent_slug": "data-agent", "input_template": "Analyze sprint metrics and prepare a report:\n{prev_output}"},
         ],
         "steps_description": [
-            {"agent": "pm-agent", "label": "Сбор данных", "description": "Задачи спринта из Jira"},
-            {"agent": "data-agent", "label": "Анализ метрик", "description": "Velocity, burndown, отчёт"},
+            {"agent": "pm-agent", "label": "Data Collection", "description": "Sprint tasks from Jira"},
+            {"agent": "data-agent", "label": "Metrics Analysis", "description": "Velocity, burndown, report"},
         ],
     },
 ]
@@ -669,7 +668,7 @@ async def _get_or_create_tl_agent(db: AsyncSession, template: dict) -> Agent:
 
     agent = Agent(
         name=agent_name,
-        description=f"Оркестратор пайплайна: {template['description']}",
+        description=f"Pipeline orchestrator: {template['description']}",
         model="claude-sonnet-4-6",
         system_prompt=template["orchestrator_prompt"],
         tools=all_tools,

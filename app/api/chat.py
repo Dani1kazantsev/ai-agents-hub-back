@@ -229,6 +229,7 @@ async def _process_and_stream(
     user_content: str,
     allowed_tools: list[str],
     save_user_msg: bool = True,
+    locale: str = "en",
 ):
     """Stream LLM response for a user message, save assistant message to DB."""
     import logging
@@ -290,6 +291,7 @@ async def _process_and_stream(
         working_dir=str(session_dir),
         agent_id=str(agent.id),
         agent_config=agent_config,
+        locale=locale,
     ):
         if event.type == "text":
             full_response += event.content
@@ -460,6 +462,9 @@ async def chat_websocket(websocket: WebSocket, session_id: UUID):
                 "orchestrator:get_result", "orchestrator:kill_agent",
             ])
 
+            # Default locale
+            locale = "en"
+
             # Check for unprocessed user message (e.g. from pipeline creation)
             if session.messages:
                 last_msg = sorted(session.messages, key=lambda m: m.created_at)[-1]
@@ -467,6 +472,7 @@ async def chat_websocket(websocket: WebSocket, session_id: UUID):
                     await _process_and_stream(
                         websocket, db, session, agent, sso_user_id,
                         last_msg.content, allowed_tools, save_user_msg=False,
+                        locale=locale,
                     )
 
             while True:
@@ -478,6 +484,7 @@ async def chat_websocket(websocket: WebSocket, session_id: UUID):
                     continue
 
                 user_content = data.get("content", "")
+                locale = data.get("locale", "en")
 
                 # Reactivate inactive session on new message
                 if session.status == "inactive":
@@ -494,6 +501,7 @@ async def chat_websocket(websocket: WebSocket, session_id: UUID):
                 await _process_and_stream(
                     websocket, db, session, agent, sso_user_id,
                     user_content, allowed_tools,
+                    locale=locale,
                 )
 
     except WebSocketDisconnect:

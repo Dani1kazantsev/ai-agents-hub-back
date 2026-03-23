@@ -46,9 +46,9 @@ def load_agents_from_yaml() -> list[dict]:
 AGENTS_FALLBACK = [
     {
         "name": "QA Agent",
-        "description": "Тест-кейсы, баг-репорты, ревью MR с точки зрения QA, авто-тестирование",
+        "description": "Test cases, bug reports, MR review from QA perspective, automated testing",
         "model": "claude-sonnet-4-6",
-        "system_prompt": "Ты — Senior QA инженер. Отвечай на русском.",
+        "system_prompt": "You are a Senior QA Engineer.",
         "tools": [
             "jira:search_issues", "jira:get_issue", "jira:create_issue", "jira:add_comment",
             "gitlab:read_file", "gitlab:list_files", "gitlab:list_mrs", "gitlab:get_mr_diff",
@@ -62,9 +62,9 @@ AGENTS_FALLBACK = [
     },
     {
         "name": "Frontend Dev",
-        "description": "Разработка и ревью фронтенд-задач на Vue/Nuxt/TypeScript",
+        "description": "Development and review of frontend tasks in Vue/Nuxt/TypeScript",
         "model": "claude-sonnet-4-6",
-        "system_prompt": "Ты — Senior Frontend разработчик. Отвечай на русском.",
+        "system_prompt": "You are a Senior Frontend Developer.",
         "tools": [
             "gitlab:read_file", "gitlab:list_files", "gitlab:list_mrs", "gitlab:get_mr_diff",
             "gitlab:add_mr_comment", "gitlab:create_branch", "gitlab:commit_files", "gitlab:create_mr",
@@ -79,9 +79,9 @@ AGENTS_FALLBACK = [
     },
     {
         "name": "Backend Dev",
-        "description": "Разработка и ревью бэкенд-задач на Python/Django/Go",
+        "description": "Development and review of backend tasks in Python/Django/Go",
         "model": "claude-sonnet-4-6",
-        "system_prompt": "Ты — Senior Backend разработчик. Отвечай на русском.",
+        "system_prompt": "You are a Senior Backend Developer.",
         "tools": [
             "gitlab:read_file", "gitlab:list_files", "gitlab:list_mrs", "gitlab:get_mr_diff",
             "gitlab:add_mr_comment", "gitlab:create_branch", "gitlab:commit_files", "gitlab:create_mr",
@@ -96,9 +96,9 @@ AGENTS_FALLBACK = [
     },
     {
         "name": "Mobile Dev",
-        "description": "Разработка и ревью мобильных приложений на Flutter/Dart",
+        "description": "Development and review of mobile applications in Flutter/Dart",
         "model": "claude-sonnet-4-6",
-        "system_prompt": "Ты — Senior Mobile разработчик. Отвечай на русском.",
+        "system_prompt": "You are a Senior Mobile Developer.",
         "tools": [
             "gitlab:read_file", "gitlab:list_files", "gitlab:list_mrs", "gitlab:get_mr_diff",
             "gitlab:add_mr_comment", "gitlab:create_branch", "gitlab:commit_files", "gitlab:create_mr",
@@ -113,9 +113,9 @@ AGENTS_FALLBACK = [
     },
     {
         "name": "PM Agent",
-        "description": "Формулировка задач, декомпозиция эпиков, анализ бэклога, приоритизация",
+        "description": "Task formulation, epic decomposition, backlog analysis, prioritization",
         "model": "claude-sonnet-4-6",
-        "system_prompt": "Ты — Product Manager. Отвечай на русском.",
+        "system_prompt": "You are a Product Manager.",
         "tools": [
             "jira:search_issues", "jira:get_issue", "jira:create_issue", "jira:update_issue",
             "jira:add_comment", "jira:get_transitions", "jira:transition_issue",
@@ -129,9 +129,9 @@ AGENTS_FALLBACK = [
     },
     {
         "name": "Designer",
-        "description": "UI/UX дизайн, работа с Figma и Pencil, дизайн-система, ревью",
+        "description": "UI/UX design, Figma and Pencil workflows, design system, review",
         "model": "claude-sonnet-4-6",
-        "system_prompt": "Ты — Senior UI/UX дизайнер. Отвечай на русском.",
+        "system_prompt": "You are a Senior UI/UX Designer.",
         "tools": [
             "figma:get_file", "figma:get_file_nodes", "figma:get_file_styles",
             "figma:get_file_components", "figma:get_file_images",
@@ -146,9 +146,9 @@ AGENTS_FALLBACK = [
     },
     {
         "name": "Data Agent",
-        "description": "SQL запросы, анализ данных, построение отчётов, метрики",
+        "description": "SQL queries, data analysis, report generation, metrics",
         "model": "claude-sonnet-4-6",
-        "system_prompt": "Ты — Data аналитик. Отвечай на русском.",
+        "system_prompt": "You are a Data Analyst.",
         "tools": [
             "db:read_query", "db:describe_table", "db:list_tables",
             "docs:get_context", "docs:get_project", "docs:search_docs",
@@ -162,9 +162,9 @@ AGENTS_FALLBACK = [
     },
     {
         "name": "DevOps Agent",
-        "description": "CI/CD пайплайны, деплой, мониторинг, инфраструктура",
+        "description": "CI/CD pipelines, deployment, monitoring, infrastructure",
         "model": "claude-sonnet-4-6",
-        "system_prompt": "Ты — Senior DevOps инженер. Отвечай на русском.",
+        "system_prompt": "You are a Senior DevOps Engineer.",
         "tools": [
             "gitlab:read_file", "gitlab:list_files", "gitlab:list_mrs", "gitlab:get_mr_diff",
             "gitlab:add_mr_comment", "jira:search_issues", "jira:get_issue",

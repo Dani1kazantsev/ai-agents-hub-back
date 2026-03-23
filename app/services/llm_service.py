@@ -25,6 +25,7 @@ class LLMService:
         working_dir: str | None = None,
         agent_id: str | None = None,
         agent_config: dict | None = None,
+        locale: str = "en",
     ) -> AsyncGenerator[StreamEvent, None]:
         """
         Send a message and stream responses from Claude CLI.
@@ -40,6 +41,7 @@ class LLMService:
             working_dir: Working directory for Claude CLI process
             agent_id: Agent UUID (for memory/orchestrator MCP)
             agent_config: Agent configuration dict
+            locale: Response language ("en" or "ru")
         """
         async for event in claude_manager.send_message(
             user_id=user_id,
@@ -52,6 +54,7 @@ class LLMService:
             working_dir=working_dir,
             agent_id=agent_id,
             agent_config=agent_config,
+            locale=locale,
         ):
             yield event
 

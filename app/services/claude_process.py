@@ -355,6 +355,7 @@ class ClaudeProcessManager:
         claude_session_id: str | None = None,
         agent_id: str | None = None,
         agent_config: dict | None = None,
+        locale: str = "en",
     ) -> AsyncGenerator[StreamEvent, None]:
         """
         Send a message to Claude CLI and stream back events.
@@ -377,8 +378,11 @@ class ClaudeProcessManager:
         if model:
             cmd.extend(["--model", model])
 
-        # System prompt — always enforce Russian + append agent prompt
-        base_system = "Всегда отвечай на русском языке."
+        # System prompt — enforce language based on locale + append agent prompt
+        if locale == "ru":
+            base_system = "Всегда отвечай на русском языке."
+        else:
+            base_system = "Always respond in English."
         if system_prompt:
             base_system = f"{base_system}\n\n{system_prompt}"
 
@@ -386,26 +390,26 @@ class ClaudeProcessManager:
         memory_enabled = agent_config.get("memory_enabled", True) if agent_config else True
         if memory_enabled:
             base_system += (
-                "\n\n## Память агента (КРИТИЧЕСКИ ВАЖНО!)\n"
-                "ЗАПРЕЩЕНО использовать файловую систему, Write, Read, auto-memory или CLAUDE.md для сохранения памяти!\n"
-                "Для памяти используй ИСКЛЮЧИТЕЛЬНО MCP-инструменты memory-сервера:\n"
-                "- mcp__memory__read(key) — прочитать запись. Пример: key='MEMORY.md'\n"
-                "- mcp__memory__write(key, content, tags) — создать/обновить запись в БД\n"
-                "- mcp__memory__search(query) — полнотекстовый поиск по памяти\n"
-                "- mcp__memory__list(prefix) — список всех ключей в памяти\n\n"
-                "Когда пользователь просит 'запомни' или 'сохрани' — ОБЯЗАТЕЛЬНО вызови mcp__memory__write.\n"
-                "НЕ ПИШИ файлы на диск для сохранения памяти. НЕ используй Write/Edit для этого.\n"
-                "Память хранится в PostgreSQL через MCP-сервер, а НЕ в файловой системе.\n"
+                "\n\n## Agent Memory (CRITICAL!)\n"
+                "DO NOT use filesystem, Write, Read, auto-memory or CLAUDE.md to save memory!\n"
+                "For memory use ONLY MCP memory server tools:\n"
+                "- mcp__memory__read(key) — read an entry. Example: key='MEMORY.md'\n"
+                "- mcp__memory__write(key, content, tags) — create/update entry in DB\n"
+                "- mcp__memory__search(query) — full-text search in memory\n"
+                "- mcp__memory__list(prefix) — list all keys in memory\n\n"
+                "When user asks to 'remember' or 'save' — ALWAYS call mcp__memory__write.\n"
+                "DO NOT write files to disk to save memory. DO NOT use Write/Edit for this.\n"
+                "Memory is stored in PostgreSQL via MCP server, NOT in the filesystem.\n"
             )
 
         # Orchestrator instructions — always available
         base_system += (
-            "\n\n## Оркестрирование\n"
-            "Ты можешь делегировать задачи другим агентам через MCP-инструменты:\n"
-            "- mcp__orchestrator__spawn_agent(agent_name, task) — запустить подагента\n"
-            "- mcp__orchestrator__list_running() — список запущенных подагентов\n"
-            "- mcp__orchestrator__get_result(run_id) — результат подагента\n"
-            "- mcp__orchestrator__kill_agent(run_id) — отменить подагента\n"
+            "\n\n## Orchestration\n"
+            "You can delegate tasks to other agents via MCP tools:\n"
+            "- mcp__orchestrator__spawn_agent(agent_name, task) — spawn a sub-agent\n"
+            "- mcp__orchestrator__list_running() — list running sub-agents\n"
+            "- mcp__orchestrator__get_result(run_id) — get sub-agent result\n"
+            "- mcp__orchestrator__kill_agent(run_id) — cancel a sub-agent\n"
         )
 
         cmd.extend(["--append-system-prompt", base_system])
