@@ -18,6 +18,7 @@ class User(Base):
     username: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     first_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     last_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
     role: Mapped[str] = mapped_column(String(50), default="user")
     groups: Mapped[dict | None] = mapped_column(JSONB, default=list)
     token_budget: Mapped[int] = mapped_column(Integer, default=100000)

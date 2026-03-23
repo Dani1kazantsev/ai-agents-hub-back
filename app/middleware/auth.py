@@ -43,20 +43,28 @@ async def get_current_user(
     token = credentials.credentials
 
     local_payload = await validate_token_local(token)
-    if local_payload is None:
+
+    # If external auth provider is configured, try it
+    if settings.AUTH_PROVIDER_URL:
+        if local_payload is None:
+            user_info = await fetch_user_info(token)
+            if not user_info:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid or expired token",
+                )
+            return user_info
+
         user_info = await fetch_user_info(token)
-        if not user_info:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid or expired token",
-            )
-        return user_info
+        if user_info:
+            return user_info
 
-    user_info = await fetch_user_info(token)
-    if user_info:
-        return user_info
-
-    # Auth provider unavailable — use all fields from JWT payload directly
+    # No external provider or provider unavailable — use local JWT
+    if local_payload is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token",
+        )
     return local_payload
 
 

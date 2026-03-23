@@ -11,10 +11,25 @@ from app.models.base import Base
 from app.services.claude_process import claude_manager
 
 
+async def _auto_seed():
+    """Seed agents if DB is empty (first run)."""
+    from sqlalchemy import func, select
+    from app.db import async_session_factory
+    from app.models.base import Agent
+
+    async with async_session_factory() as session:
+        count = await session.scalar(select(func.count()).select_from(Agent))
+        if count == 0:
+            from app.seed import seed
+            await seed()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+    await _auto_seed()
 
     app.state.redis = aioredis.from_url(settings.REDIS_URL, decode_responses=True)
 
