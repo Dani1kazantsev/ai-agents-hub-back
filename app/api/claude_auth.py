@@ -8,8 +8,6 @@ Uses user_id from JWT as the stable key for CLAUDE_CONFIG_DIR.
 import asyncio
 import json
 import os
-import pty
-import re
 
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -58,13 +56,13 @@ async def claude_auth_terminal(websocket: WebSocket):
     """
     WebSocket terminal for `claude auth login`.
 
-    Uses PTY to simulate a real terminal — Claude CLI requires interactive input.
+    The CLI opens a browser for OAuth. After the user authorizes,
+    the CLI receives the callback automatically and completes.
 
     Protocol:
     - Server sends: {"type": "output", "data": "..."} — terminal output
     - Server sends: {"type": "auth_url", "url": "..."} — extracted auth URL
     - Server sends: {"type": "done", "success": true/false}
-    - Client sends: {"type": "input", "data": "..."} — terminal input (auth code)
     """
     await websocket.accept()
 
@@ -87,89 +85,75 @@ async def claude_auth_terminal(websocket: WebSocket):
     env["CLAUDE_CONFIG_DIR"] = str(config_dir)
     env.pop("ANTHROPIC_API_KEY", None)
     env.pop("CLAUDECODE", None)
-    # Prevent CLI from opening browser
-    env["BROWSER"] = "echo"
-    env["DISPLAY"] = ""
 
-    pid = None
-    master_fd = None
-
+    proc = None
     try:
-        # Create PTY — Claude CLI needs a real terminal for interactive code input
-        master_fd, slave_fd = pty.openpty()
+        proc = await asyncio.create_subprocess_exec(
+            "claude", "auth", "login",
+            stdin=asyncio.subprocess.PIPE,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            env=env,
+        )
 
-        pid = os.fork()
-        if pid == 0:
-            # Child process
-            os.close(master_fd)
-            os.setsid()
-            os.dup2(slave_fd, 0)  # stdin
-            os.dup2(slave_fd, 1)  # stdout
-            os.dup2(slave_fd, 2)  # stderr
-            os.close(slave_fd)
-            os.execvpe("claude", ["claude", "auth", "login", "--claudeai"], env)
-            os._exit(1)
-        else:
-            # Parent process
-            os.close(slave_fd)
+        async def read_stream(stream, stream_name):
+            while True:
+                line = await stream.readline()
+                if not line:
+                    break
+                text = line.decode("utf-8", errors="replace")
 
-            loop = asyncio.get_event_loop()
+                await websocket.send_json({
+                    "type": "output",
+                    "data": text,
+                })
 
-            async def read_pty():
-                """Read output from PTY and send to WebSocket."""
+                if "http" in text:
+                    import re
+                    urls = re.findall(r'https?://[^\s<>"\']+', text)
+                    for url in urls:
+                        if "anthropic" in url or "claude" in url:
+                            await websocket.send_json({
+                                "type": "auth_url",
+                                "url": url,
+                            })
+
+        stdout_task = asyncio.create_task(read_stream(proc.stdout, "stdout"))
+        stderr_task = asyncio.create_task(read_stream(proc.stderr, "stderr"))
+
+        async def handle_input():
+            try:
                 while True:
-                    try:
-                        data = await loop.run_in_executor(None, lambda: os.read(master_fd, 4096))
-                        if not data:
-                            break
-                        text = data.decode("utf-8", errors="replace")
+                    raw = await websocket.receive_text()
+                    data = json.loads(raw)
+                    if data.get("type") == "input" and proc.stdin:
+                        proc.stdin.write(data.get("data", "").encode())
+                        await proc.stdin.drain()
+            except (WebSocketDisconnect, Exception):
+                pass
 
-                        await websocket.send_json({"type": "output", "data": text})
+        input_task = asyncio.create_task(handle_input())
 
-                        # Extract auth URLs
-                        urls = re.findall(r'https?://[^\s<>"\']+', text)
-                        for url in urls:
-                            if "anthropic" in url or "claude" in url:
-                                await websocket.send_json({"type": "auth_url", "url": url})
+        await proc.wait()
 
-                    except OSError:
-                        break
-                    except Exception:
-                        break
+        for task in [stdout_task, stderr_task, input_task]:
+            if not task.done():
+                task.cancel()
 
-            async def handle_input():
-                """Read input from WebSocket and write to PTY."""
-                try:
-                    while True:
-                        raw = await websocket.receive_text()
-                        data = json.loads(raw)
-                        if data.get("type") == "input":
-                            code = data.get("data", "")
-                            os.write(master_fd, code.encode())
-                except (WebSocketDisconnect, Exception):
-                    pass
+        success = proc.returncode == 0
 
-            read_task = asyncio.create_task(read_pty())
-            input_task = asyncio.create_task(handle_input())
+        if success:
+            check = await claude_manager.check_user_auth(sso_id)
+            success = check.get("authenticated", False)
 
-            # Wait for process to finish
-            _, exit_status = await loop.run_in_executor(None, lambda: os.waitpid(pid, 0))
-            pid = None  # Mark as collected
-
-            for task in [read_task, input_task]:
-                if not task.done():
-                    task.cancel()
-
-            success = os.WIFEXITED(exit_status) and os.WEXITSTATUS(exit_status) == 0
-
-            if success:
-                check = await claude_manager.check_user_auth(sso_id)
-                success = check.get("authenticated", False)
-
-            await websocket.send_json({"type": "done", "success": success})
+        await websocket.send_json({
+            "type": "done",
+            "success": success,
+        })
 
     except WebSocketDisconnect:
-        pass
+        if proc and proc.returncode is None:
+            proc.kill()
     except FileNotFoundError:
         await websocket.send_json({
             "type": "error",
@@ -181,17 +165,8 @@ async def claude_auth_terminal(websocket: WebSocket):
         except Exception:
             pass
     finally:
-        if master_fd is not None:
-            try:
-                os.close(master_fd)
-            except OSError:
-                pass
-        if pid is not None:
-            try:
-                os.kill(pid, 9)
-                os.waitpid(pid, 0)
-            except (OSError, ChildProcessError):
-                pass
+        if proc and proc.returncode is None:
+            proc.kill()
         try:
             await websocket.close()
         except Exception:
