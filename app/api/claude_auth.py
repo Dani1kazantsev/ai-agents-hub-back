@@ -83,6 +83,9 @@ async def claude_auth_terminal(websocket: WebSocket):
     env["CLAUDE_CONFIG_DIR"] = str(config_dir)
     env.pop("ANTHROPIC_API_KEY", None)
     env.pop("CLAUDECODE", None)
+    # Prevent CLI from opening browser automatically — we show the URL in the UI
+    env["BROWSER"] = "echo"
+    env["DISPLAY"] = ""
 
     proc = None
     try:
