@@ -9,7 +9,7 @@ from app.db import get_db
 from app.middleware.auth import get_or_create_user
 from app.models.base import Agent, User
 from app.schemas.agents import AgentCreate, AgentListResponse, AgentResponse, AgentUpdate
-from app.services.claude_process import _detect_pencil_mcp, _load_mcp_registry
+from app.services.claude_process import _detect_pencil_mcp, _get_integration_env, _load_mcp_registry
 
 router = APIRouter(prefix="/api/agents", tags=["agents"])
 
@@ -38,7 +38,7 @@ async def integrations_status(user: User = Depends(get_or_create_user)):
         # Server is available if all required env vars are set
         available = True
         for env_spec in server_def.get("env", {}).values():
-            if env_spec.get("required") and not getattr(settings, env_spec["setting"], ""):
+            if env_spec.get("required") and not _get_integration_env(name, env_spec["setting"]):
                 available = False
                 break
         result[name] = available

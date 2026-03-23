@@ -17,6 +17,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import AsyncGenerator
 
+from sqlalchemy import select
+
 from app.config import settings
 
 logger = logging.getLogger(__name__)
@@ -111,6 +113,30 @@ def _load_mcp_registry() -> dict:
     return _mcp_registry_cache
 
 
+# Integration credentials cache — loaded from DB, updated on save
+_integration_credentials_cache: dict[str, dict] = {}
+
+
+async def refresh_integration_cache():
+    """Reload integration credentials from DB into cache."""
+    from app.db import async_session_factory
+    from app.models.base import IntegrationConfig
+    global _integration_credentials_cache
+    async with async_session_factory() as session:
+        result = await session.execute(select(IntegrationConfig).where(IntegrationConfig.is_enabled == True))
+        configs = result.scalars().all()
+        _integration_credentials_cache = {c.service_name: c.credentials for c in configs}
+    logger.info(f"Refreshed integration cache: {list(_integration_credentials_cache.keys())}")
+
+
+def _get_integration_env(service_name: str, setting_name: str) -> str:
+    """Get credential value: DB cache first, then settings/.env fallback."""
+    cached = _integration_credentials_cache.get(service_name, {})
+    if setting_name in cached and cached[setting_name]:
+        return cached[setting_name]
+    return getattr(settings, setting_name, "")
+
+
 @dataclass
 class StreamEvent:
     """Event emitted from Claude CLI process."""
@@ -183,7 +209,7 @@ class ClaudeProcessManager:
             env = {}
             skip = False
             for env_key, env_spec in server_def.get("env", {}).items():
-                value = getattr(settings, env_spec["setting"], "")
+                value = _get_integration_env(service_name, env_spec["setting"])
                 if env_spec.get("required") and not value:
                     skip = True
                     break

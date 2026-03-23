@@ -4,7 +4,7 @@ import redis.asyncio as aioredis
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import admin, agents, auth, chat, claude_auth, memory, onboarding, pipelines, subagents
+from app.api import admin, agents, auth, chat, claude_auth, integrations, memory, onboarding, pipelines, subagents
 from app.config import settings
 from app.db import engine
 from app.models.base import Base
@@ -30,6 +30,9 @@ async def lifespan(app: FastAPI):
         await conn.run_sync(Base.metadata.create_all)
 
     await _auto_seed()
+
+    from app.services.claude_process import refresh_integration_cache
+    await refresh_integration_cache()
 
     app.state.redis = aioredis.from_url(settings.REDIS_URL, decode_responses=True)
 
@@ -64,6 +67,7 @@ app.include_router(pipelines.router)
 app.include_router(onboarding.router)
 app.include_router(memory.router)
 app.include_router(subagents.router)
+app.include_router(integrations.router)
 
 
 @app.get("/health")

@@ -5,41 +5,41 @@
       "description": "Jira issue tracker integration",
       "server_path": "jira/server.py",
       "env": {
-        "JIRA_BASE_URL": {"setting": "JIRA_BASE_URL", "required": true},
-        "JIRA_EMAIL": {"setting": "JIRA_EMAIL", "required": true},
-        "JIRA_API_TOKEN": {"setting": "JIRA_API_TOKEN", "required": true}
+        "JIRA_BASE_URL": {"setting": "JIRA_BASE_URL", "required": true, "label": "Jira URL", "type": "url"},
+        "JIRA_EMAIL": {"setting": "JIRA_EMAIL", "required": true, "label": "Email", "type": "email"},
+        "JIRA_API_TOKEN": {"setting": "JIRA_API_TOKEN", "required": true, "label": "API Token", "type": "password"}
       }
     },
     "gitlab": {
       "description": "GitLab repository integration",
       "server_path": "gitlab/server.py",
       "env": {
-        "GITLAB_URL": {"setting": "GITLAB_URL", "required": true},
-        "GITLAB_TOKEN": {"setting": "GITLAB_TOKEN", "required": true}
+        "GITLAB_URL": {"setting": "GITLAB_URL", "required": true, "label": "GitLab URL", "type": "url"},
+        "GITLAB_TOKEN": {"setting": "GITLAB_TOKEN", "required": true, "label": "Private Token", "type": "password"}
       }
     },
     "docs": {
       "description": "Project documentation from GitLab repository",
       "server_path": "docs/server.py",
       "env": {
-        "GITLAB_URL": {"setting": "GITLAB_URL", "required": true},
-        "GITLAB_TOKEN": {"setting": "GITLAB_TOKEN", "required": true},
-        "DOCS_PROJECT_ID": {"setting": "DOCS_PROJECT_ID", "required": false},
-        "PROJECTS_CONFIG_PATH": {"setting": "PROJECTS_CONFIG_PATH", "required": false}
+        "GITLAB_URL": {"setting": "GITLAB_URL", "required": true, "label": "GitLab URL", "type": "url"},
+        "GITLAB_TOKEN": {"setting": "GITLAB_TOKEN", "required": true, "label": "Private Token", "type": "password"},
+        "DOCS_PROJECT_ID": {"setting": "DOCS_PROJECT_ID", "required": false, "label": "Project ID", "type": "text"},
+        "PROJECTS_CONFIG_PATH": {"setting": "PROJECTS_CONFIG_PATH", "required": false, "label": "Projects Config Path", "type": "text"}
       }
     },
     "db": {
       "description": "Read-only SQL access to external database",
       "server_path": "db/server.py",
       "env": {
-        "EXTERNAL_DATABASE_URL": {"setting": "EXTERNAL_DATABASE_URL", "required": true}
+        "EXTERNAL_DATABASE_URL": {"setting": "EXTERNAL_DATABASE_URL", "required": true, "label": "Database URL", "type": "password"}
       }
     },
     "figma": {
       "description": "Figma design files integration",
       "server_path": "figma/server.py",
       "env": {
-        "FIGMA_ACCESS_TOKEN": {"setting": "FIGMA_ACCESS_TOKEN", "required": true}
+        "FIGMA_ACCESS_TOKEN": {"setting": "FIGMA_ACCESS_TOKEN", "required": true, "label": "Access Token", "type": "password"}
       }
     }
   }

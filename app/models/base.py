@@ -142,6 +142,17 @@ class AgentMemory(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
 
+class IntegrationConfig(Base):
+    __tablename__ = "integration_configs"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    service_name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    credentials: Mapped[dict] = mapped_column(JSONB, default=dict)
+    is_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    updated_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
 class SubagentRun(Base):
     __tablename__ = "subagent_runs"
 
