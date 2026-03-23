@@ -95,6 +95,8 @@ async def list_integrations(
             "is_connected": is_connected,
             "is_enabled": db_config.is_enabled if db_config else True,
             "values": current_values,
+            "help_text": server_def.get("help_text", ""),
+            "help_url": server_def.get("help_url", ""),
         })
 
     # Pencil — special case (external binary)

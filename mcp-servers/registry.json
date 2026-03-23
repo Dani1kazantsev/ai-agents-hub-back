@@ -4,6 +4,8 @@
     "jira": {
       "description": "Jira issue tracker integration",
       "server_path": "jira/server.py",
+      "help_url": "https://support.atlassian.com/atlassian-account/docs/manage-api-tokens-for-your-atlassian-account/",
+      "help_text": "Go to Atlassian Account → Security → API Tokens → Create API Token",
       "env": {
         "JIRA_BASE_URL": {"setting": "JIRA_BASE_URL", "required": true, "label": "Jira URL", "type": "url"},
         "JIRA_EMAIL": {"setting": "JIRA_EMAIL", "required": true, "label": "Email", "type": "email"},
@@ -13,6 +15,8 @@
     "gitlab": {
       "description": "GitLab repository integration",
       "server_path": "gitlab/server.py",
+      "help_url": "https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html",
+      "help_text": "Go to GitLab → Settings → Access Tokens → Create with 'api' scope",
       "env": {
         "GITLAB_URL": {"setting": "GITLAB_URL", "required": true, "label": "GitLab URL", "type": "url"},
         "GITLAB_TOKEN": {"setting": "GITLAB_TOKEN", "required": true, "label": "Private Token", "type": "password"}
@@ -21,6 +25,7 @@
     "docs": {
       "description": "Project documentation from GitLab repository",
       "server_path": "docs/server.py",
+      "help_text": "Uses the same GitLab credentials. Project ID is the numeric ID from your GitLab repo page.",
       "env": {
         "GITLAB_URL": {"setting": "GITLAB_URL", "required": true, "label": "GitLab URL", "type": "url"},
         "GITLAB_TOKEN": {"setting": "GITLAB_TOKEN", "required": true, "label": "Private Token", "type": "password"},
@@ -31,6 +36,7 @@
     "db": {
       "description": "Read-only SQL access to external database",
       "server_path": "db/server.py",
+      "help_text": "Format: postgresql://user:password@host:5432/dbname. Only SELECT queries allowed.",
       "env": {
         "EXTERNAL_DATABASE_URL": {"setting": "EXTERNAL_DATABASE_URL", "required": true, "label": "Database URL", "type": "password"}
       }
@@ -38,6 +44,8 @@
     "figma": {
       "description": "Figma design files integration",
       "server_path": "figma/server.py",
+      "help_url": "https://www.figma.com/developers/api#access-tokens",
+      "help_text": "Go to Figma → Settings → Account → Personal Access Tokens → Generate",
       "env": {
         "FIGMA_ACCESS_TOKEN": {"setting": "FIGMA_ACCESS_TOKEN", "required": true, "label": "Access Token", "type": "password"}
       }
