@@ -9,7 +9,7 @@ from app.db import get_db
 from app.middleware.auth import get_or_create_user
 from app.models.base import Agent, User
 from app.schemas.agents import AgentCreate, AgentListResponse, AgentResponse, AgentUpdate
-from app.services.claude_process import _detect_pencil_mcp
+from app.services.claude_process import _detect_pencil_mcp, _load_mcp_registry
 
 router = APIRouter(prefix="/api/agents", tags=["agents"])
 
@@ -31,14 +31,20 @@ def require_admin(user: User):
 
 @router.get("/integrations/status")
 async def integrations_status(user: User = Depends(get_or_create_user)):
-    """Check which external integrations are available."""
-    return {
-        "pencil": _detect_pencil_mcp() is not None,
-        "jira": bool(settings.JIRA_BASE_URL and settings.JIRA_API_TOKEN),
-        "gitlab": bool(settings.GITLAB_URL and settings.GITLAB_TOKEN),
-        "figma": bool(settings.FIGMA_ACCESS_TOKEN),
-        "db": bool(settings.EXTERNAL_DATABASE_URL),
-    }
+    """Check which external integrations are available (from MCP registry)."""
+    registry = _load_mcp_registry()
+    result = {}
+    for name, server_def in registry.items():
+        # Server is available if all required env vars are set
+        available = True
+        for env_spec in server_def.get("env", {}).values():
+            if env_spec.get("required") and not getattr(settings, env_spec["setting"], ""):
+                available = False
+                break
+        result[name] = available
+    # Pencil is special — external binary
+    result["pencil"] = _detect_pencil_mcp() is not None
+    return result
 
 
 @router.get("", response_model=AgentListResponse)

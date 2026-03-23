@@ -85,6 +85,31 @@ BACKEND_ROOT = Path(__file__).resolve().parent.parent.parent
 MCP_SERVERS_DIR = Path(settings.MCP_SERVERS_DIR) if settings.MCP_SERVERS_DIR else BACKEND_ROOT / "mcp-servers"
 MCP_PYTHON = str(BACKEND_ROOT / ".venv" / "bin" / "python")
 
+# MCP server registry — loaded once from mcp-servers/registry.json
+_mcp_registry_cache: dict | None = None
+
+def _load_mcp_registry() -> dict:
+    """Load MCP server definitions from registry.json.
+
+    Returns dict of {server_name: {server_path, env, description}}.
+    Servers can be added by editing mcp-servers/registry.json — no code changes needed.
+    """
+    global _mcp_registry_cache
+    if _mcp_registry_cache is not None:
+        return _mcp_registry_cache
+
+    registry_path = MCP_SERVERS_DIR / "registry.json"
+    if not registry_path.exists():
+        logger.warning(f"MCP registry not found: {registry_path}")
+        _mcp_registry_cache = {}
+        return _mcp_registry_cache
+
+    with open(registry_path) as f:
+        data = json.load(f)
+    _mcp_registry_cache = data.get("servers", {})
+    logger.info(f"Loaded MCP registry: {list(_mcp_registry_cache.keys())}")
+    return _mcp_registry_cache
+
 
 @dataclass
 class StreamEvent:
@@ -149,60 +174,30 @@ class ClaudeProcessManager:
             if ":" in tool:
                 needed_services.add(tool.split(":")[0])
 
-        if ("jira" in needed_services) and settings.JIRA_BASE_URL and settings.JIRA_API_TOKEN:
-            config["mcpServers"]["jira"] = {
+        # Load declarative MCP server registry
+        registry = _load_mcp_registry()
+        for service_name, server_def in registry.items():
+            if service_name not in needed_services:
+                continue
+            # Resolve env vars from settings — skip server if required vars are missing
+            env = {}
+            skip = False
+            for env_key, env_spec in server_def.get("env", {}).items():
+                value = getattr(settings, env_spec["setting"], "")
+                if env_spec.get("required") and not value:
+                    skip = True
+                    break
+                if value:
+                    env[env_key] = value
+            if skip:
+                continue
+            config["mcpServers"][service_name] = {
                 "command": MCP_PYTHON,
-                "args": [str(MCP_SERVERS_DIR / "jira" / "server.py")],
-                "env": {
-                    "JIRA_BASE_URL": settings.JIRA_BASE_URL,
-                    "JIRA_EMAIL": settings.JIRA_EMAIL,
-                    "JIRA_API_TOKEN": settings.JIRA_API_TOKEN,
-                },
+                "args": [str(MCP_SERVERS_DIR / server_def["server_path"])],
+                "env": env,
             }
 
-        if settings.GITLAB_URL and settings.GITLAB_TOKEN:
-            if "gitlab" in needed_services:
-                config["mcpServers"]["gitlab"] = {
-                    "command": MCP_PYTHON,
-                    "args": [str(MCP_SERVERS_DIR / "gitlab" / "server.py")],
-                    "env": {
-                        "GITLAB_URL": settings.GITLAB_URL,
-                        "GITLAB_TOKEN": settings.GITLAB_TOKEN,
-                    },
-                }
-            if "docs" in needed_services:
-                docs_env = {
-                    "GITLAB_URL": settings.GITLAB_URL,
-                    "GITLAB_TOKEN": settings.GITLAB_TOKEN,
-                    "DOCS_PROJECT_ID": settings.DOCS_PROJECT_ID,
-                }
-                if settings.PROJECTS_CONFIG_PATH:
-                    docs_env["PROJECTS_CONFIG_PATH"] = settings.PROJECTS_CONFIG_PATH
-                config["mcpServers"]["docs"] = {
-                    "command": MCP_PYTHON,
-                    "args": [str(MCP_SERVERS_DIR / "docs" / "server.py")],
-                    "env": docs_env,
-                }
-
-        if ("db" in needed_services) and settings.EXTERNAL_DATABASE_URL:
-            config["mcpServers"]["db"] = {
-                "command": MCP_PYTHON,
-                "args": [str(MCP_SERVERS_DIR / "db" / "server.py")],
-                "env": {
-                    "EXTERNAL_DATABASE_URL": settings.EXTERNAL_DATABASE_URL,
-                },
-            }
-
-        if ("figma" in needed_services) and settings.FIGMA_ACCESS_TOKEN:
-            config["mcpServers"]["figma"] = {
-                "command": MCP_PYTHON,
-                "args": [str(MCP_SERVERS_DIR / "figma" / "server.py")],
-                "env": {
-                    "FIGMA_ACCESS_TOKEN": settings.FIGMA_ACCESS_TOKEN,
-                },
-            }
-
-        # Pencil MCP server — only if agent has pencil:* tools
+        # Pencil MCP server — external binary, auto-detected
         if "pencil" in needed_services:
             pencil = _detect_pencil_mcp()
             if pencil:
