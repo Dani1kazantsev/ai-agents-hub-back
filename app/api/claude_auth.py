@@ -90,7 +90,7 @@ async def claude_auth_terminal(websocket: WebSocket):
     proc = None
     try:
         proc = await asyncio.create_subprocess_exec(
-            "claude", "auth", "login",
+            "claude", "auth", "login", "--claudeai",
             stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
@@ -153,7 +153,8 @@ async def claude_auth_terminal(websocket: WebSocket):
         })
 
     except WebSocketDisconnect:
-        pass
+        if proc and proc.returncode is None:
+            proc.kill()
     except FileNotFoundError:
         await websocket.send_json({
             "type": "error",
